@@ -108,10 +108,14 @@ export default {
     // Журнал событий
     const logEntries = ref([])
     
+     // Игровые тики
     const currentTick = ref(0)
-    const ticksPerDay = ref(24) 
+    const ticksPerDay = ref(240) // 24 тика = 1 день (можно настроить)
+    const animationFrameId = ref(null)
+    
+    // ... остальные состояния (пчелы, ресурсы и т.д.)
 
-     // Основной цикл симуляции
+    // Основной цикл симуляции
     const simulationLoop = () => {
       if (!isRunning.value) return
       
@@ -126,24 +130,39 @@ export default {
     // Один тик симуляции
     const simulationTick = () => {
       currentTick.value++
-    }
+      
+      // Обновляем время суток каждый 6 тиков (4 раза в день)
+      if (currentTick.value % 60 === 0) {
+        updateTimeOfDay()
+      }
+      
       // Проверяем завершение дня
       if (currentTick.value >= ticksPerDay.value) {
         endDay()
       }
-
-     // Завершение дня
-    const endDay = () => {
-      day.value++
-      currentTick.value = 0
-      
+    }
     
+    // Обновление времени суток
+    const updateTimeOfDay = () => {
+      const times = ['утро', 'день', 'вечер', 'ночь']
+      const currentIndex = times.indexOf(timeOfDay.value)
+      timeOfDay.value = times[(currentIndex + 1) % times.length]
       
       logEntries.value.unshift({
         day: day.value,
-        message: `Завершён день ${day.value - 1}. В улье ${workerCount.value} рабочих пчел.`
+        message: `Наступило ${timeOfDay.value}`
       })
     }
+    
+    // Завершение дня
+    const endDay = () => {
+      day.value++
+      currentTick.value = 0
+    }
+
+
+    
+
 
     // Цветы на поляне
     const flowers = ref([])
@@ -186,12 +205,18 @@ export default {
     
     // Управление симуляцией
     const startSimulation = () => {
-      isRunning.value = true
-      logEntries.value.unshift({
-        day: day.value,
-        message: 'Симуляция начата'
-      })
-    }
+  if (isRunning.value) return; // Если уже запущена, ничего не делаем
+  
+  isRunning.value = true;
+  logEntries.value.unshift({
+    day: day.value,
+    message: 'Симуляция начата'
+  });
+  
+  // Запускаем игровой цикл
+  simulationLoop();
+};
+
     
     const pauseSimulation = () => {
       isRunning.value = false
@@ -238,7 +263,7 @@ export default {
       timeOfDay,
       season,
       isRunning,
-       currentTick,
+     currentTick,
       ticksPerDay,
       queenCount,
       workerCount,
