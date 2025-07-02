@@ -87,6 +87,8 @@ export default {
 
       // Список всех пчел
     const bees = ref([])
+
+    const beeCounter = ref(0); // Глобальный счётчик пчёл
     
     // Пчелиная колония
         const queenCount = computed(() => bees.value.filter(b => b.type === 'queen').length)
@@ -103,7 +105,7 @@ export default {
     const receptionistsCount = computed(() => bees.value.filter(b => b.role === 'receptionist').length)
     const guardsCount = computed(() => bees.value.filter(b => b.role === 'guard').length)
     const foragersCount = computed(() => bees.value.filter(b => b.role === 'forager').length)
-    
+
     // Ресурсы
     const honey = ref(100)
     const nectar = ref(50)
@@ -162,6 +164,7 @@ export default {
       day.value++
       currentTick.value = 0
       updateBeesAge()
+      checkBeesAge()
     }
 
     // Цветы на поляне
@@ -186,6 +189,7 @@ export default {
     }
     
     const initBees = () => {
+        beeCounter.value = 0; // Сбрасываем счётчик
   for (let i = 0; i < 10; i++) {
     addWorker()
   }
@@ -258,11 +262,12 @@ export default {
     
        // Добавление новой рабочей пчелы
     const addWorker = () => {
+
         const fieldWidth = 500
       const fieldHeight = 350
 
       const newBee = {
-        id: Date.now(),
+        id: beeCounter.value,
         type: 'worker',
         age: 0, // возраст в днях
         role: 'cleaner', // начальная роль
@@ -270,6 +275,8 @@ export default {
         x: Math.random() * (fieldWidth) + 20,
         y: Math.random() * (fieldHeight) + 40,
       }
+
+         beeCounter.value++; // Увеличиваем счётчик
 
       bees.value.push (newBee)
        logEntries.value.unshift({
@@ -302,7 +309,28 @@ export default {
       })
     }
 
-    
+    const checkBeesAge = () => {
+  const beesToRemove = [];
+  
+  bees.value.forEach((bee, index) => {
+    if (bee.type === 'worker' && bee.age >= 20 && bee.age <= 45) {
+      // 30% вероятность смерти каждый день после 20 дней
+      if (Math.random() < 0.3) {
+        beesToRemove.push(index);
+      }
+    }
+  });
+
+  // Удаляем пчёл в обратном порядке
+  beesToRemove.reverse().forEach(index => {
+    const deadBee = bees.value.splice(index, 1)[0];
+    logEntries.value.unshift({
+      day: day.value,
+      message: `Пчела #${deadBee.id} умерла в возрасте ${deadBee.age} дней`
+    });
+  });
+};
+
     // Инициализируем цветы при загрузке
     initFlowers()
     initBees()
@@ -341,7 +369,7 @@ export default {
       changeSpeed,
       addFlower,
       addWorker,
-      getBeeRole
+      getBeeRole,
     }
   }
 }

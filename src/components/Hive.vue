@@ -11,7 +11,7 @@
         left: bee.x + 'px',
         top: bee.y + 'px',
       }"
-        :title="`Пчела #${index}\nВозраст: ${bee.age} дней\nРоль: ${getRoleName(bee.role)}`"
+        :title="`Пчела #${bee.id}\nВозраст: ${bee.age} дней\nРоль: ${getRoleName(bee.role)}`"
       ></div>
     </div>
   </div>
@@ -32,7 +32,7 @@ export default {
         receptionist: 'Приёмщица',
         forager: 'Сборщица'
       }
-      return role
+      return roles[role]
     }
   }
 }
