@@ -49,14 +49,16 @@
     </div>
 
     <div class="hive-container">
-      <Hive />
+      <Hive
+      :bees="bees" 
+      :getBeeRole="getBeeRole" />
       <Field :flowers="flowers" />
     </div>
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import BeeStats from './components/BeeStats.vue'
 import TaskDistribution from './components/TaskDistribution.vue'
 import Resources from './components/Resources.vue'
@@ -82,22 +84,25 @@ export default {
     const season = ref('весна')
     const isRunning = ref(false)
     const simulationSpeed = ref(1)
+
+      // Список всех пчел
+    const bees = ref([])
     
     // Пчелиная колония
-    const queenCount = ref(1)
-    const workerCount = ref(50)
-    const droneCount = ref(10)
-    const pupaCount = ref(20)
-    const larvaCount = ref(30)
-    const eggCount = ref(40)
+        const queenCount = computed(() => bees.value.filter(b => b.type === 'queen').length)
+    const workerCount = computed(() => bees.value.filter(b => b.type === 'worker').length)
+    const droneCount = computed(() => bees.value.filter(b => b.type === 'drone').length)
+    const pupaCount = ref(0)
+    const larvaCount = ref(0)
+    const eggCount = ref(0)
     
-    // Распределение задач
-    const cleanerCount = ref(5)
-    const nurseCount = ref(10)
-    const builderCount = ref(5)
-    const receptionistsCount = ref(5)
-    const guardsCount = ref(5)
-    const foragersCount = ref(20)
+      // Распределение задач (вычисляемые значения)
+    const cleanerCount = computed(() => bees.value.filter(b => b.role === 'cleaner').length)
+    const nurseCount = computed(() => bees.value.filter(b => b.role === 'nurse').length)
+    const builderCount = computed(() => bees.value.filter(b => b.role === 'builder').length)
+    const receptionistsCount = computed(() => bees.value.filter(b => b.role === 'receptionist').length)
+    const guardsCount = computed(() => bees.value.filter(b => b.role === 'guard').length)
+    const foragersCount = computed(() => bees.value.filter(b => b.role === 'forager').length)
     
     // Ресурсы
     const honey = ref(100)
@@ -110,10 +115,8 @@ export default {
     
      // Игровые тики
     const currentTick = ref(0)
-    const ticksPerDay = ref(240) // 24 тика = 1 день (можно настроить)
+    const ticksPerDay = ref(240) // 240 тика = 1 день 
     const animationFrameId = ref(null)
-    
-    // ... остальные состояния (пчелы, ресурсы и т.д.)
 
     // Основной цикл симуляции
     const simulationLoop = () => {
@@ -123,7 +126,7 @@ export default {
       simulationTick()
       
       // Планируем следующий кадр с учетом скорости
-      const delay = Math.max(1000 / (10 * simulationSpeed.value), 16) // ~10 тиков/сек на 1x скорости
+      const delay = Math.max(1000 / (10 * simulationSpeed.value), 16) 
       animationFrameId.value = setTimeout(simulationLoop, delay)
     }
     
@@ -131,7 +134,7 @@ export default {
     const simulationTick = () => {
       currentTick.value++
       
-      // Обновляем время суток каждый 6 тиков (4 раза в день)
+      // Обновляем время суток каждый 60 тиков (4 раза в день)
       if (currentTick.value % 60 === 0) {
         updateTimeOfDay()
       }
@@ -154,15 +157,12 @@ export default {
       })
     }
     
-    // Завершение дня
+       // Завершение дня
     const endDay = () => {
       day.value++
       currentTick.value = 0
+      updateBeesAge()
     }
-
-
-    
-
 
     // Цветы на поляне
     const flowers = ref([])
@@ -184,6 +184,12 @@ export default {
       
       flowers.value = newFlowers
     }
+    
+    const initBees = () => {
+  for (let i = 0; i < 10; i++) {
+    addWorker()
+  }
+}
     
     // Добавление нового цветка
     const addFlower = () => {
@@ -233,6 +239,9 @@ export default {
       season.value = 'весна'
       logEntries.value = []
       initFlowers()
+      
+       bees.value = [];
+      initBees()
       logEntries.value.unshift({
         day: day.value,
         message: 'Симуляция сброшена'
@@ -247,16 +256,56 @@ export default {
       })
     }
     
+       // Добавление новой рабочей пчелы
     const addWorker = () => {
-      workerCount.value++
-      logEntries.value.unshift({
+        const fieldWidth = 500
+      const fieldHeight = 350
+
+      const newBee = {
+        id: Date.now(),
+        type: 'worker',
+        age: 0, // возраст в днях
+        role: 'cleaner', // начальная роль
+        birthDay: day.value, // день рождения
+        x: Math.random() * (fieldWidth) + 20,
+        y: Math.random() * (fieldHeight) + 40,
+      }
+
+      bees.value.push (newBee)
+       logEntries.value.unshift({
         day: day.value,
         message: 'Добавлена новая рабочая пчела'
+    })
+  }
+
+        // Обновление возраста пчел
+    const updateBeesAge = () => {
+      bees.value.forEach(bee => {
+        bee.age = day.value - bee.birthDay
+      })
+      updateBeeRoles()
+    }
+
+       // Определение роли пчелы по возрасту
+    const getBeeRole = (age) => {
+      if (age < 3) return 'cleaner'
+      if (age < 6) return 'nurse'
+      if (age < 12) return 'builder'
+      if (age < 18) return 'receptionist'
+      return 'forager'
+    }
+
+    // Обновление ролей всех пчел
+    const updateBeeRoles = () => {
+      bees.value.forEach(bee => {
+        bee.role = getBeeRole(bee.age)
       })
     }
+
     
     // Инициализируем цветы при загрузке
     initFlowers()
+    initBees()
     
     return {
       day,
@@ -265,6 +314,9 @@ export default {
       isRunning,
      currentTick,
       ticksPerDay,
+      bees,
+      updateBeesAge,
+         updateBeeRoles,
       queenCount,
       workerCount,
       droneCount,
@@ -288,7 +340,8 @@ export default {
       resetSimulation,
       changeSpeed,
       addFlower,
-      addWorker
+      addWorker,
+      getBeeRole
     }
   }
 }

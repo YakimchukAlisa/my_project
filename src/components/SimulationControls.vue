@@ -158,6 +158,7 @@
             <button @click="$emit('change-speed', 2)">2x</button>
             <button @click="$emit('add-flower')">Добавить цветок</button>
             <button @click="$emit('add-worker')">Добавить пчелу</button>
+            
         </div>
     </div>
 </template>
