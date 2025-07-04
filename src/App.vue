@@ -65,7 +65,7 @@ export default {
     const beeCounter = ref(0); // Глобальный счётчик пчёл
 
     const activeForagers = ref([]); // Пчёлы, которые сейчас собирают ресурсы
-    const hivePosition = { x: 510, y: 600 }; // Позиция улья
+    const hivePosition = { x: 520, y: 600 }; // Позиция улья
 
     // Пчелиная колония
     const queenCount = computed(() => bees.value.filter(b => b.type === 'queen').length)
@@ -133,9 +133,15 @@ export default {
         sendForagers();
       }
 
-
-
       updateBeePositions();
+
+      // Обновляем всех пчёл в улье без задания
+      bees.value.forEach(bee => {
+        if (bee.state === 'in_hive' && !bee.target) {
+          assignRandomMovement(bee);
+          updateRandomMovement(bee);
+        }
+      });
 
       // Обновляем время суток каждый 60 тиков (4 раза в день)
       if (currentTick.value % 600 === 0) {
@@ -183,6 +189,31 @@ export default {
       });
     }
 
+    const assignRandomMovement = (bee) => {
+      if (!bee.randomTarget) {
+        bee.randomTarget = {
+          x: Math.random() * 1000, // Случайная позиция в пределах улья
+          y: Math.random() * 600,
+          speed: 1 // Случайная скорость
+        };
+      }
+    };
+
+    const updateRandomMovement = (bee) => {
+      if (!bee.randomTarget) return;
+
+      const dx = bee.randomTarget.x - bee.x;
+      const dy = bee.randomTarget.y - bee.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 2) { // Достигли цели
+        bee.randomTarget = null; // Назначим новую цель в следующем тике
+      } else {
+        // Двигаемся к цели
+        bee.x += (dx / distance) * bee.randomTarget.speed;
+        bee.y += (dy / distance) * bee.randomTarget.speed;
+      }
+    };
 
     // Цветы на поляне
     const flowers = ref([])
@@ -280,8 +311,8 @@ export default {
     // Добавление новой рабочей пчелы
     const addWorker = () => {
 
-      const fieldWidth = 500
-      const fieldHeight = 350
+      const fieldWidth = 1000
+      const fieldHeight = 600
 
       const newBee = {
         id: beeCounter.value,
@@ -289,8 +320,8 @@ export default {
         age: 0, // возраст в днях
         role: 'forager', // начальная роль
         birthDay: day.value, // день рождения
-        x: Math.random() * (fieldWidth) + 20,
-        y: Math.random() * (fieldHeight) + 40,
+        x: Math.random() * (fieldWidth),
+        y: Math.random() * (fieldHeight),
         target: null,
         carrying: { nectar: 0, pollen: 0 },
         state: 'in_hive' // 'in_hive', 'flying_to_flower', 'collecting', 'flying_to_hive'
@@ -423,8 +454,6 @@ export default {
       bee.carrying = { nectar: 0, pollen: 0 };
       bee.state = 'in_hive';
       bee.target = null;
-
-
     };
 
     // Обновление возраста пчел
