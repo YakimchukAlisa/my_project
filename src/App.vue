@@ -25,7 +25,7 @@
     </div>
 
     <div class="hive-container">
-      <Hive :bees="bees" :getBeeRole="getBeeRole" />
+      <Hive :bees="bees" :resource-piles="resourcePiles" :get-role-name="getRoleName" />
       <Field :flowers="flowers" />
     </div>
   </div>
@@ -65,7 +65,7 @@ export default {
     const beeCounter = ref(0); // Глобальный счётчик пчёл
 
     const activeForagers = ref([]); // Пчёлы, которые сейчас собирают ресурсы
-    const hivePosition = { x: 50, y: 50 }; // Позиция улья
+    const hivePosition = { x: 510, y: 600 }; // Позиция улья
 
     // Пчелиная колония
     const queenCount = computed(() => bees.value.filter(b => b.type === 'queen').length)
@@ -94,8 +94,23 @@ export default {
 
     // Игровые тики
     const currentTick = ref(0)
-    const ticksPerDay = ref(2400) // 2400 тиков = 1 день 
+    const ticksPerDay = ref(2400) // 240 тика = 1 день 
     const animationFrameId = ref(null)
+
+    const resourcePiles = ref({
+      nectar: {
+        x: 45,
+        y: 70,
+        amount: 0,
+        items: []
+      },
+      pollen: {
+        x: 55,
+        y: 70,
+        amount: 0,
+        items: []
+      }
+    });
 
     // Основной цикл симуляции
     const simulationLoop = () => {
@@ -113,14 +128,16 @@ export default {
     const simulationTick = () => {
       currentTick.value++
 
-      // Утром отправляем сборщиков
+      // Отправляем сборщиков
       if (timeOfDay.value != 'ночь' && currentTick.value % 10 === 0) {
         sendForagers();
       }
 
+
+
       updateBeePositions();
 
-      // Обновляем время суток каждый 600 тиков (4 раза в день)
+      // Обновляем время суток каждый 60 тиков (4 раза в день)
       if (currentTick.value % 600 === 0) {
         updateTimeOfDay()
       }
@@ -165,6 +182,7 @@ export default {
         flower.pollen = Math.floor(Math.random() * 10) + 1;
       });
     }
+
 
     // Цветы на поляне
     const flowers = ref([])
@@ -382,22 +400,31 @@ export default {
 
     // Метод доставки ресурсов
     const deliverResources = (bee) => {
-      // Добавляем ресурсы в улей
-      nectar.value += bee.carrying.nectar;
-      pollen.value += bee.carrying.pollen;
+      // Добавляем нектар в кучу
+      if (bee.carrying.nectar > 0) {
+        nectar.value += bee.carrying.nectar;
+        resourcePiles.value.nectar.amount += bee.carrying.nectar;
+        resourcePiles.value.nectar.items.push(...Array(bee.carrying.nectar).fill({}));
+      }
+
+      // Добавляем пыльцу в кучу
+      if (bee.carrying.pollen > 0) {
+        pollen.value += bee.carrying.pollen;
+        resourcePiles.value.pollen.amount += bee.carrying.pollen;
+        resourcePiles.value.pollen.items.push(...Array(bee.carrying.pollen).fill({}));
+      }
+
+      logEntries.value.unshift({
+        day: day.value,
+        message: `Пчела #${bee.id} доставила ${bee.carrying.nectar} нектара и ${bee.carrying.pollen} пыльцы в улей`
+      });
 
       // Сбрасываем переносимые ресурсы
       bee.carrying = { nectar: 0, pollen: 0 };
       bee.state = 'in_hive';
       bee.target = null;
 
-      // Удаляем из активных сборщиков
-      activeForagers.value = activeForagers.value.filter(b => b.id !== bee.id);
 
-      logEntries.value.unshift({
-        day: day.value,
-        message: `Пчела #${bee.id} доставила ресурсы в улей`
-      });
     };
 
     // Обновление возраста пчел
@@ -485,6 +512,7 @@ export default {
       addFlower,
       addWorker,
       getBeeRole,
+      resourcePiles
     }
   }
 }
