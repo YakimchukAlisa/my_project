@@ -94,7 +94,7 @@ export default {
 
     // Игровые тики
     const currentTick = ref(0)
-    const ticksPerDay = ref(2400) // 240 тика = 1 день 
+    const ticksPerDay = ref(240) // 240 тика = 1 день 
     const animationFrameId = ref(null)
 
     const resourcePiles = ref({
@@ -144,7 +144,7 @@ export default {
       });
 
       // Обновляем время суток каждый 60 тиков (4 раза в день)
-      if (currentTick.value % 600 === 0) {
+      if (currentTick.value % 60 === 0) {
         updateTimeOfDay()
       }
 
@@ -182,10 +182,15 @@ export default {
       currentTick.value = 0
       updateBeesAge()
       checkBeesAge()
+      updateFlowersAge()
+      checkFlowersAge()
+      randomFlower()
       // Восстанавливаем ресурсы на цветах
       flowers.value.forEach(flower => {
-        flower.nectar = Math.floor(Math.random() * 10) + 1;
-        flower.pollen = Math.floor(Math.random() * 10) + 1;
+        if (flower.nectar === 0 && flower.pollen === 0) {
+          flower.nectar = Math.floor(Math.random() * 10) + 1;
+          flower.pollen = Math.floor(Math.random() * 10) + 1;
+        }
       });
     }
 
@@ -226,6 +231,7 @@ export default {
 
       for (let i = 0; i < 1; i++) {
         newFlowers.push({
+          age: 0,
           x: Math.random() * (fieldWidth) + 20,
           y: Math.random() * (fieldHeight) + 40,
           nectar: Math.floor(Math.random() * 10) + 1,
@@ -246,10 +252,11 @@ export default {
 
     // Добавление нового цветка
     const addFlower = () => {
-      const fieldWidth = 500
-      const fieldHeight = 350
+      const fieldWidth = 1000
+      const fieldHeight = 650
 
       flowers.value.push({
+        age: 0,
         x: Math.random() * (fieldWidth) + 20,
         y: Math.random() * (fieldHeight) + 40,
         nectar: Math.floor(Math.random() * 10) + 1,
@@ -259,6 +266,37 @@ export default {
       logEntries.value.unshift({
         day: day.value,
         message: 'На поляне вырос новый цветок!'
+      })
+    }
+
+    const randomFlower = () => {
+      if (Math.random() < 2) {
+        addFlower()
+      }
+    }
+
+    const checkFlowersAge = () => {
+      const FlowersToRemove = [];
+
+      flowers.value.forEach((flower, index) => {
+        if (flower.age >= 10) {
+          // 30% вероятность смерти каждый день после 10 дней
+          if (Math.random() < 0.3) {
+            FlowersToRemove.push(index);
+          }
+        }
+      });
+
+      // Удаляем пчёл в обратном порядке
+      FlowersToRemove.reverse().forEach(index => {
+        flowers.value.splice(index, 1)[0];
+      });
+    };
+
+    // Обновление возраста пчел
+    const updateFlowersAge = () => {
+      flowers.value.forEach(flower => {
+        flower.age += 1;
       })
     }
 
@@ -319,7 +357,6 @@ export default {
         type: 'worker',
         age: 0, // возраст в днях
         role: 'forager', // начальная роль
-        birthDay: day.value, // день рождения
         x: Math.random() * (fieldWidth),
         y: Math.random() * (fieldHeight),
         target: null,
@@ -450,6 +487,8 @@ export default {
         message: `Пчела #${bee.id} доставила ${bee.carrying.nectar} нектара и ${bee.carrying.pollen} пыльцы в улей`
       });
 
+      activeForagers.value = activeForagers.value.filter(b => b.id !== bee.id); // Удаляем пчелу
+
       // Сбрасываем переносимые ресурсы
       bee.carrying = { nectar: 0, pollen: 0 };
       bee.state = 'in_hive';
@@ -459,7 +498,7 @@ export default {
     // Обновление возраста пчел
     const updateBeesAge = () => {
       bees.value.forEach(bee => {
-        bee.age = day.value - bee.birthDay
+        bee.age += 1;
       })
       updateBeeRoles()
     }
@@ -484,8 +523,8 @@ export default {
       const beesToRemove = [];
 
       bees.value.forEach((bee, index) => {
-        if (bee.type === 'worker' && bee.age >= 40 && bee.age <= 45) {
-          // 30% вероятность смерти каждый день после 20 дней
+        if (bee.type === 'worker' && bee.age >= 25) {
+          // 30% вероятность смерти каждый день после 25 дней
           if (Math.random() < 0.3) {
             beesToRemove.push(index);
           }
