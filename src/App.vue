@@ -65,6 +65,7 @@ export default {
     const beeCounter = ref(0); // Глобальный счётчик пчёл
 
     const activeForagers = ref([]); // Пчёлы, которые сейчас собирают ресурсы
+    const activeReceptionists = ref([]); // Пчёлы, которые сейчас перерабатывают нектар
     const hivePosition = { x: 520, y: 600 }; // Позиция улья
 
     // Пчелиная колония
@@ -92,20 +93,29 @@ export default {
     // Журнал событий
     const logEntries = ref([])
 
+    const processingNectar = ref([]); // Нектар в процессе переработки
+    const honeyProductionTime = 1; // Время переработки в тиках (1 день)
+
     // Игровые тики
     const currentTick = ref(0)
-    const ticksPerDay = ref(240) // 240 тика = 1 день 
+    const ticksPerDay = ref(2400) // 240 тика = 1 день 
     const animationFrameId = ref(null)
 
     const resourcePiles = ref({
       nectar: {
         x: 45,
         y: 70,
-        amount: 0,
+        amount: 29,
         items: []
       },
       pollen: {
         x: 55,
+        y: 70,
+        amount: 0,
+        items: []
+      },
+      honey: {
+        x: 65,
         y: 70,
         amount: 0,
         items: []
@@ -128,12 +138,34 @@ export default {
     const simulationTick = () => {
       currentTick.value++
 
+      // Проверяем завершённые процессы переработки
+      processingNectar.value = processingNectar.value.filter(item => {
+        const elapsedTicks = (day.value - item.startDay) * ticksPerDay.value +
+          (currentTick.value - item.startTick);
+
+        if (elapsedTicks >= honeyProductionTime) {
+
+          // Освобождаем пчелу
+          const bee = bees.value.find(b => b.id === item.beeId);
+          if (bee) {
+            bee.state = 'flying_to_honey';
+            bee.target.x = 650;
+            bee.target.y = 600;
+          }
+
+          return false; // Удаляем завершённый процесс
+        }
+        return true; // Продолжаем процесс
+      });
+
       // Отправляем сборщиков
       if (timeOfDay.value != 'ночь' && currentTick.value % 10 === 0) {
         sendForagers();
       }
 
       updateBeePositions();
+
+      sendReceptionists();
 
       // Обновляем всех пчёл в улье без задания
       bees.value.forEach(bee => {
@@ -144,7 +176,7 @@ export default {
       });
 
       // Обновляем время суток каждый 60 тиков (4 раза в день)
-      if (currentTick.value % 60 === 0) {
+      if (currentTick.value % 600 === 0) {
         updateTimeOfDay()
       }
 
@@ -153,16 +185,6 @@ export default {
         endDay()
       }
     }
-
-    // Метод возврата сборщиков
-    const returnForagers = () => {
-      activeForagers.value.forEach(bee => {
-        if (bee.state !== 'in_hive') {
-          bee.target = hivePosition;
-          bee.state = 'flying_to_hive';
-        }
-      });
-    };
 
     // Обновление времени суток
     const updateTimeOfDay = () => {
@@ -229,7 +251,7 @@ export default {
       const fieldWidth = 550
       const fieldHeight = 350
 
-      for (let i = 0; i < 1; i++) {
+      for (let i = 0; i < 7; i++) {
         newFlowers.push({
           age: 0,
           x: Math.random() * (fieldWidth) + 20,
@@ -245,7 +267,7 @@ export default {
 
     const initBees = () => {
       beeCounter.value = 0; // Сбрасываем счётчик
-      for (let i = 0; i < 1; i++) {
+      for (let i = 0; i < 5; i++) {
         addWorker()
       }
     }
@@ -327,6 +349,8 @@ export default {
       day.value = 0
       timeOfDay.value = 'утро'
       season.value = 'весна'
+      pollen.value = 0
+      nectar.value = 0
       logEntries.value = []
       initFlowers()
 
@@ -356,7 +380,7 @@ export default {
         id: beeCounter.value,
         type: 'worker',
         age: 0, // возраст в днях
-        role: 'forager', // начальная роль
+        role: 'receptionist', // начальная роль
         x: Math.random() * (fieldWidth),
         y: Math.random() * (fieldHeight),
         target: null,
@@ -403,7 +427,7 @@ export default {
 
     // Добавим метод для обновления позиций пчёл
     const updateBeePositions = () => {
-      activeForagers.value.forEach(bee => {
+      bees.value.forEach(bee => {
         if (bee.state === 'flying_to_flower') {
           // Движение к цветку
           const dx = bee.target.x - bee.x + 1100;
@@ -417,11 +441,7 @@ export default {
             collectResources(bee);
             bee.state === 'flying_to_hive'
 
-            // Через 1 секунду (условно) начинаем сбор
-            // setTimeout(() => {
-            //   collectResources(bee);
-            //  }, 1000 / simulationSpeed.value);
-          } else {
+
             // Продолжаем движение
             bee.x += dx * 0.05;
             bee.y += dy * 0.05;
@@ -434,6 +454,61 @@ export default {
 
           if (distance < 5) { // Достигли улья
             deliverResources(bee);
+          } else {
+            // Продолжаем движение
+            bee.x += dx * 0.05;
+            bee.y += dy * 0.05;
+          }
+        } else if (bee.state === 'flying_to_honey') {
+          const dx = bee.target.x - bee.x;
+          const dy = bee.target.y - bee.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 1) {
+            // Процесс завершён - производим мёд
+            const honeyProduced = Math.floor(bee.carrying.nectar / 2);
+            honey.value += honeyProduced;
+
+            bee.carrying.nectar = 0;
+            bee.state = 'in_hive';
+            bee.target = null;
+
+            logEntries.value.unshift({
+              day: day.value,
+              message: `Приёмщица #${bee.id} произвела ${honeyProduced} мёда`
+            });
+
+          } else {
+            // Продолжаем движение
+            bee.x += dx * 0.05;
+            bee.y += dy * 0.05;
+          }
+        } else if (bee.state === 'flying_to_nectar') {
+          bee.target = { x: 500, y: 600 }; // Позиция "рабочего места"
+          const dx = bee.target.x - bee.x;
+          const dy = bee.target.y - bee.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 1) { // Достигли цели
+            // Уменьшаем кучу нектара
+            resourcePiles.value.nectar.amount -= bee.carrying.nectar;
+            // resourcePiles.value.nectar.items.splice(0, amountToTake);
+            activeReceptionists.value = activeReceptionists.value.filter(b => b.id !== bee.id); // Удаляем пчелу
+            // Добавляем в обработку
+            processingNectar.value.push({
+              amount: bee.carrying.nectar,
+              startDay: day.value,
+              startTick: currentTick.value,
+              beeId: bee.id
+            });
+
+            bee.state = 'processing';
+
+            logEntries.value.unshift({
+              day: day.value,
+              message: `Приёмщица #${bee.id} взяла ${bee.carrying.nectar} нектара на переработку`
+            });
+
           } else {
             // Продолжаем движение
             bee.x += dx * 0.05;
@@ -456,13 +531,10 @@ export default {
       bee.target.pollen = 0;
       bee.target.collectingBee = null; // Освобождаем цветок
 
-
-
       logEntries.value.unshift({
         day: day.value,
         message: `Пчела #${bee.id} собрала ${bee.carrying.nectar} нектара и ${bee.carrying.pollen} пыльцы`
       });
-
       bee.state = 'flying_to_hive';
     };
 
@@ -472,14 +544,14 @@ export default {
       if (bee.carrying.nectar > 0) {
         nectar.value += bee.carrying.nectar;
         resourcePiles.value.nectar.amount += bee.carrying.nectar;
-        resourcePiles.value.nectar.items.push(...Array(bee.carrying.nectar).fill({}));
+        //     resourcePiles.value.nectar.items.push(...Array(bee.carrying.nectar).fill({}));
       }
 
       // Добавляем пыльцу в кучу
       if (bee.carrying.pollen > 0) {
         pollen.value += bee.carrying.pollen;
         resourcePiles.value.pollen.amount += bee.carrying.pollen;
-        resourcePiles.value.pollen.items.push(...Array(bee.carrying.pollen).fill({}));
+        //     resourcePiles.value.pollen.items.push(...Array(bee.carrying.pollen).fill({}));
       }
 
       logEntries.value.unshift({
@@ -509,15 +581,36 @@ export default {
       //if (age < 6) return 'nurse'
       // if (age < 12) return 'builder'
       //  if (age < 18) return 'receptionist'
-      return 'forager'
+      if (age < 1) return 'receptionist'
+      else return 'forager'
     }
 
     // Обновление ролей всех пчел
     const updateBeeRoles = () => {
       bees.value.forEach(bee => {
-        bee.role = getBeeRole(bee.age)
+        if (!bee.target)
+          bee.role = getBeeRole(bee.age)
       })
     }
+
+    const sendReceptionists = () => {
+      bees.value.forEach(bee => {
+        if (bee.role === 'receptionist' && bee.state === 'in_hive') {
+          assignReceptionistTask(bee)
+        }
+      })
+    }
+
+    const assignReceptionistTask = (bee) => {
+      // Проверяем, есть ли нектар для переработки
+      if (resourcePiles.value.nectar.amount - activeReceptionists.value.length * 10 > 0) {
+        const amountToTake = Math.min(10, resourcePiles.value.nectar.amount - activeReceptionists.value.length * 10);
+        bee.state = 'flying_to_nectar';
+        activeReceptionists.value.push(bee);
+        bee.carrying.nectar = amountToTake;
+        bee.target = { x: 500, y: 600 }; // Позиция "рабочего места"
+      }
+    };
 
     const checkBeesAge = () => {
       const beesToRemove = [];

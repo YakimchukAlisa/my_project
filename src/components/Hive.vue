@@ -14,6 +14,12 @@
       <div class="pile-counter">{{ pollenPile.amount }}</div>
     </div>
 
+    <!-- Куча мёда -->
+    <div class="resource-pile honey-pile" :style="{ left: honeyPile.x + '%', top: honeyPile.y + '%' }">
+
+      <div class="pile-counter">{{ honeyPile.amount }}</div>
+    </div>
+
     <div class="bees-container">
       <div v-for="bee in bees" :key="'bee-' + bee.id" class="bee" :class="['bee-' + bee.role, bee.state]"
         :style="getBeeStyle(bee)" :title="getBeeTooltip(bee)"></div>
@@ -38,6 +44,9 @@ export default {
     },
     pollenPile() {
       return this.resourcePiles.pollen;
+    },
+    honeyPile() {
+      return this.resourcePiles.honey;
     }
   },
 
@@ -57,6 +66,9 @@ export default {
         case 'flying_to_flower': status = 'Летит к цветку'; break;
         case 'collecting': status = 'Собирает ресурсы'; break;
         case 'flying_to_hive': status = 'Возвращается в улей'; break;
+        case 'processing': status = 'Перерабатывает нектар'; break;
+        case 'flying_to_honey': status = 'Относит мёд'; break;
+        case 'flying_to_nectar': status = 'Летит к нектару'; break;
       }
 
       return `Пчела #${bee.id}
@@ -101,6 +113,11 @@ ${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}`;
 .pollen-pile {
   background-color: rgba(76, 175, 80, 0.2);
   border: 2px dashed #4caf50;
+}
+
+.honey-pile {
+  background-color: rgba(96, 113, 201, 0.677);
+  border: 2px dashed rgba(38, 50, 110, 0.677);
 }
 
 .pile-counter {
