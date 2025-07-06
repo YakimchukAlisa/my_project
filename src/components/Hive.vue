@@ -20,6 +20,25 @@
       <div class="pile-counter">{{ honeyPile.amount }}</div>
     </div>
 
+    <!-- Матка -->
+    <div class="bee bee-queen" :style="{ left: queen.position.x + '%', top: queen.position.y + '%' }" title="Матка">
+    </div>
+
+    <!-- Яйца -->
+    <div v-for="egg in eggs" :key="'egg-' + egg.id" class="egg"
+      :style="{ left: egg.position.x + '%', top: egg.position.y + '%' }"></div>
+
+    <!-- Личинки -->
+    <div v-for="larva in larvae" :key="'larva-' + larva.id" class="larva"
+      :class="larva.foodType === 'ROYAL_JELLY' ? 'larva-royal' : 'larva-normal'"
+      :style="{ left: larva.position.x + '%', top: larva.position.y + '%' }"
+      :title="`Личинка (${larva.fed}/6 кормлений)`">
+    </div>
+
+    <!-- Куколки -->
+    <div v-for="pupa in pupae" :key="'pupa-' + pupa.id" class="pupa"
+      :style="{ left: pupa.position.x + '%', top: pupa.position.y + '%' }"></div>
+
     <div class="bees-container">
       <div v-for="bee in bees" :key="'bee-' + bee.id" class="bee" :class="['bee-' + bee.role, bee.state]"
         :style="getBeeStyle(bee)" :title="getBeeTooltip(bee)"></div>
@@ -31,6 +50,10 @@
 export default {
   props: {
     bees: Array,
+    eggs: Array,
+    pupae: Array,
+    larvae: Array,
+    queen: Array,
     resourcePiles: Object,
     getBeeRole: Function
   },
@@ -91,41 +114,3 @@ ${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}`;
   }
 }
 </script>
-
-<style scoped>
-.resource-pile {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  z-index: 5;
-}
-
-.nectar-pile {
-  background-color: rgba(233, 30, 99, 0.2);
-  border: 2px dashed #e91e63;
-}
-
-.pollen-pile {
-  background-color: rgba(76, 175, 80, 0.2);
-  border: 2px dashed #4caf50;
-}
-
-.honey-pile {
-  background-color: rgba(96, 113, 201, 0.677);
-  border: 2px dashed rgba(38, 50, 110, 0.677);
-}
-
-.pile-counter {
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  font-weight: bold;
-}
-</style>

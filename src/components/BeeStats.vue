@@ -16,15 +16,15 @@
       </div>
       <div class="stat-item">
         <div>Куколки</div>
-        <div>{{ pupaCount }}</div>
+        <div>{{ pupae.length }}</div>
       </div>
       <div class="stat-item">
         <div>Личинки</div>
-        <div>{{ larvaCount }}</div>
+        <div>{{ larvae.length }}</div>
       </div>
       <div class="stat-item">
         <div>Яйца</div>
-        <div>{{ eggCount }}</div>
+        <div>{{ eggs.length }}</div>
       </div>
     </div>
   </div>
@@ -36,9 +36,9 @@ export default {
     queenCount: Number,
     workerCount: Number,
     droneCount: Number,
-    pupaCount: Number,
-    larvaCount: Number,
-    eggCount: Number
+    pupae: Array,
+    larvae: Array,
+    eggs: Array
   }
 }
 </script>
