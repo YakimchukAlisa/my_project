@@ -21,23 +21,23 @@
     </div>
 
     <!-- Матка -->
-    <div class="bee bee-queen" :style="{ left: queen.position.x + '%', top: queen.position.y + '%' }" title="Матка">
+    <div class="bee bee-queen" :style="{ left: queen.position.x + 'px', top: queen.position.y + 'px' }" title="Матка">
     </div>
 
     <!-- Яйца -->
     <div v-for="egg in eggs" :key="'egg-' + egg.id" class="egg"
-      :style="{ left: egg.position.x + '%', top: egg.position.y + '%' }"></div>
+      :style="{ left: egg.position.x + 'px', top: egg.position.y + 'px' }" :title="`Яйцо\nВозраст: ${egg.age}`"></div>
 
     <!-- Личинки -->
     <div v-for="larva in larvae" :key="'larva-' + larva.id" class="larva"
       :class="larva.foodType === 'ROYAL_JELLY' ? 'larva-royal' : 'larva-normal'"
-      :style="{ left: larva.position.x + '%', top: larva.position.y + '%' }"
-      :title="`Личинка (${larva.fed}/6 кормлений)`">
+      :style="{ left: larva.position.x + 'px', top: larva.position.y + 'px' }" :title="getLarvaTooltip(larva)">
     </div>
 
     <!-- Куколки -->
     <div v-for="pupa in pupae" :key="'pupa-' + pupa.id" class="pupa"
-      :style="{ left: pupa.position.x + '%', top: pupa.position.y + '%' }"></div>
+      :style="{ left: pupa.position.x + 'px', top: pupa.position.y + 'px' }" :title="`Куколка\nВозраст: ${pupa.age}`">
+    </div>
 
     <div class="bees-container">
       <div v-for="bee in bees" :key="'bee-' + bee.id" class="bee" :class="['bee-' + bee.role, bee.state]"
@@ -92,8 +92,9 @@ export default {
         case 'processing': status = 'Перерабатывает нектар'; break;
         case 'flying_to_honey': status = 'Относит мёд'; break;
         case 'flying_to_nectar': status = 'Летит к нектару'; break;
+        case 'feeding_larva': status = 'Кормит личинку'; break;
+        case 'flying_to_larva': status = 'Летит к личинке'; break;
       }
-
       return `Пчела #${bee.id}
 Возраст: ${bee.age} дней
 Роль: ${this.getRoleName(bee.role)}
@@ -110,6 +111,15 @@ ${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}`;
         forager: 'Сборщица'
       }
       return roles[role] || role;
+    },
+    getLarvaTooltip(larva) {
+      let status = '';
+      switch (larva.status) {
+        case 'hungry': status = 'Голодная'; break;
+        case 'fed': status = 'Сытая'; break;
+      }
+      return `Возраст: ${larva.age} дней
+Состояние: ${status}`;
     }
   }
 }

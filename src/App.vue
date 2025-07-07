@@ -81,7 +81,7 @@ export default {
     const queen = ref({
       id: 0,
       age: 0,
-      position: { x: 10, y: 20 }, // Позиция в улье
+      position: { x: 70, y: 100 }, // Позиция в улье
       lastEggDay: -1 // День последней кладки
     });
 
@@ -156,9 +156,8 @@ export default {
       currentTick.value++
 
       checkQueenEggLaying();
-      updateDevelopment();
       assignNurseTasks();
-      updateFeeding();
+      //  updateFeeding(bee);
 
       // Проверяем завершённые процессы переработки
       processingNectar.value = processingNectar.value.filter(item => {
@@ -226,12 +225,28 @@ export default {
     const endDay = () => {
       day.value++
       currentTick.value = 0
-      queen.value.age++;
+      const LarvaeToRemove = [];
+      larvae.value.forEach((larva, index) => {
+        if (larva.status === 'hungry') {
+          LarvaeToRemove.push(index);
+          logEntries.value.unshift({
+            day: day.value,
+            message: `Личинка погибла от голода`
+          })
+        }
+        else larva.status = 'hungry';
+      })
+      LarvaeToRemove.reverse().forEach(index => {
+        larvae.value.splice(index, 1)[0];
+      });
       updateBeesAge()
       checkBeesAge()
       updateFlowersAge()
       checkFlowersAge()
+      updateDevelopment();
       randomFlower()
+
+
       // Восстанавливаем ресурсы на цветах
       flowers.value.forEach(flower => {
         if (flower.nectar === 0 && flower.pollen === 0) {
@@ -292,7 +307,7 @@ export default {
 
     const checkQueenEggLaying = () => {
 
-      if (Math.random() < 0.005) {
+      if (Math.random() < 0.003) {
         layEgg();
         queen.value.lastEggDay = day.value;
       }
@@ -301,13 +316,12 @@ export default {
     const layEgg = () => {
       const newEgg = {
         id: Date.now(),
-        createdDay: day.value,
+        age: 0,
         type: 'EGG',
         position: {
-          x: queen.value.position.x + (Math.random() * 20 + 5),
-          y: queen.value.position.y + (Math.random() * 20)
+          x: queen.value.position.x + (Math.random() * 200 + 50),
+          y: queen.value.position.y + (Math.random() * 200 + 50)
         },
-        fed: 0 // Количество кормлений
       };
 
       eggs.value.push(newEgg);
@@ -321,15 +335,14 @@ export default {
     const updateDevelopment = () => {
       // Обновляем яйца
       eggs.value = eggs.value.filter(egg => {
-        const age = day.value - egg.createdDay;
-        if (age >= DEVELOPMENT_STAGES.EGG.duration) {
+        if (egg.age > DEVELOPMENT_STAGES.EGG.duration) {
           // Превращаем в личинку
           larvae.value.push({
             id: egg.id,
-            createdDay: day.value,
+            age: egg.age,
             type: 'LARVA',
             position: egg.position,
-            fed: 0,
+            status: 'hungry',
             foodType: 'ROYAL_JELLY' // Первые 3 дня - маточное молочко
           });
           return false;
@@ -339,18 +352,17 @@ export default {
 
       // Обновляем личинок
       larvae.value = larvae.value.filter(larva => {
-        const age = day.value - larva.createdDay;
 
         // Меняем тип питания после 3 дней
-        if (age >= 3 && larva.foodType === 'ROYAL_JELLY') {
+        if (larva.age > 6 && larva.foodType === 'ROYAL_JELLY') {
           larva.foodType = 'HONEY_POLLEN';
         }
 
-        if (age >= DEVELOPMENT_STAGES.LARVA.duration) {
+        if (larva.age > DEVELOPMENT_STAGES.EGG.duration + DEVELOPMENT_STAGES.LARVA.duration) {
           // Превращаем в куколку
           pupae.value.push({
             id: larva.id,
-            createdDay: day.value,
+            age: larva.age,
             type: 'PUPA',
             position: larva.position
           });
@@ -361,8 +373,7 @@ export default {
 
       // Обновляем куколок
       pupae.value = pupae.value.filter(pupa => {
-        const age = day.value - pupa.createdDay;
-        if (age >= DEVELOPMENT_STAGES.PUPA.duration) {
+        if (pupa.age > DEVELOPMENT_STAGES.EGG.duration + DEVELOPMENT_STAGES.LARVA.duration + DEVELOPMENT_STAGES.PUPA.duration) {
           addWorkerBee(pupa.position);
           return false;
         }
@@ -375,14 +386,13 @@ export default {
         id: beeCounter.value,
         type: 'worker',
         age: 0, // возраст в днях
-        role: 'receptionist', // начальная роль
+        role: 'nurse', // начальная роль
         x: position.x,
         y: position.y,
         target: null,
         carrying: { nectar: 0, pollen: 0 },
         state: 'in_hive' // 'in_hive', 'flying_to_flower', 'collecting', 'flying_to_hive'
       };
-
 
       beeCounter.value++;
       bees.value.push(newBee);
@@ -394,58 +404,59 @@ export default {
     };
 
     const assignNurseTasks = () => {
-      const nurses = bees.value.filter(b => b.role === 'nurse' && b.state === 'in_hive');
-      const hungryLarvae = larvae.value.filter(l => l.fed < 6); // Максимум 6 кормлений
+      const availableNurses = bees.value.filter(
+        bee => bee.role === 'nurse' && bee.state === 'in_hive'
+      );
 
-      nurses.forEach((nurse, index) => {
-        if (index < hungryLarvae.length && !nurse.target) {
-          const larva = hungryLarvae[index];
+      const hungryLarvae = larvae.value.filter(
+        larva => larva.status === 'hungry'
+      );
+
+      // Назначаем каждой свободной няньке личинку
+      availableNurses.forEach((nurse, nurseIndex) => {
+        if (nurseIndex < hungryLarvae.length) {
+          const larva = hungryLarvae[nurseIndex];
 
           nurse.target = {
-            x: larva.position.x,
-            y: larva.position.y,
-            larvaId: larva.id
+            id: larva.id,
+            position: larva.position
           };
-          nurse.state = 'feeding_larva';
+          nurse.state = 'flying_to_larva';
+          larva.status = 'assigned';
 
-          // Определяем тип пищи
           nurse.carrying = larva.foodType === 'ROYAL_JELLY'
             ? { nectar: 0, pollen: 0, jelly: 1 }
             : { nectar: 1, pollen: 1, jelly: 0 };
         }
       });
-    };
+    }
 
-    const updateFeeding = () => {
-      bees.value.forEach(bee => {
-        if (bee.state === 'feeding_larva' && bee.target) {
-          const dx = bee.target.x - bee.x;
-          const dy = bee.target.y - bee.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+    const updateFeeding = (bee) => {
 
-          if (distance < 5) {
-            // Нашли личинку
-            const larva = larvae.value.find(l => l.id === bee.target.larvaId);
-            if (larva) {
-              larva.fed++;
+      // Нашли личинку
+      bee.state = 'feeding_larva';
+      const larva = larvae.value.find(l => l.id === bee.target.id);
+      if (larva) {
+        larva.status = 'fed';
+        resourcePiles.value.nectar.amount -= bee.carrying.nectar;
+        resourcePiles.value.pollen.amount -= bee.carrying.pollen;
 
-              // Проверяем, не нужно ли сменить тип пищи
-              if (larva.fed >= 3 && larva.foodType === 'ROYAL_JELLY') {
-                larva.foodType = 'HONEY_POLLEN';
-              }
-            }
-
-            // Пчела возвращается
-            bee.state = 'returning_to_hive';
-            bee.target = { x: 50, y: 50 }; // Центр улья
-          }
+        // Проверяем, не нужно ли сменить тип пищи
+        if (larva.age === 6 && larva.foodType === 'ROYAL_JELLY') {
+          larva.foodType = 'HONEY_POLLEN';
         }
-      });
+
+        // Пчела возвращается
+        bee.state = 'in_hive';
+        bee.target = null;
+      }
+
     };
+
 
     const initBees = () => {
       beeCounter.value = 0; // Сбрасываем счётчик
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 1; i++) {
         addWorker()
       }
     }
@@ -470,7 +481,7 @@ export default {
     }
 
     const randomFlower = () => {
-      if (Math.random() < 2) {
+      if (Math.random() < 0.3) {
         addFlower()
       }
     }
@@ -565,7 +576,7 @@ export default {
         id: beeCounter.value,
         type: 'worker',
         age: 0, // возраст в днях
-        role: 'receptionist', // начальная роль
+        role: 'nurse', // начальная роль
         x: Math.random() * (fieldWidth),
         y: Math.random() * (fieldHeight),
         target: null,
@@ -698,13 +709,25 @@ export default {
             bee.x += dx * 0.05;
             bee.y += dy * 0.05;
           }
+        } else if (bee.state === 'flying_to_larva') {
+          const dx = bee.target.position.x - 5 - bee.x;
+          const dy = bee.target.position.y - 90 - bee.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 1) { // Достигли цели
+            updateFeeding(bee);
+
+          } else {
+            // Продолжаем движение
+            bee.x += dx * 0.05;
+            bee.y += dy * 0.05;
+          }
         }
       });
     };
 
     // Метод сбора ресурсов
     const collectResources = (bee) => {
-      const flower = bee.target;
 
       // Собираем все ресурсы с цветка
       bee.carrying.nectar = bee.target.nectar;
@@ -728,14 +751,12 @@ export default {
       if (bee.carrying.nectar > 0) {
         nectar.value += bee.carrying.nectar;
         resourcePiles.value.nectar.amount += bee.carrying.nectar;
-        //     resourcePiles.value.nectar.items.push(...Array(bee.carrying.nectar).fill({}));
       }
 
       // Добавляем пыльцу в кучу
       if (bee.carrying.pollen > 0) {
         pollen.value += bee.carrying.pollen;
         resourcePiles.value.pollen.amount += bee.carrying.pollen;
-        //     resourcePiles.value.pollen.items.push(...Array(bee.carrying.pollen).fill({}));
       }
 
       logEntries.value.unshift({
@@ -753,18 +774,28 @@ export default {
 
     // Обновление возраста пчел
     const updateBeesAge = () => {
+      queen.value.age++;
       bees.value.forEach(bee => {
         bee.age += 1;
+      })
+      eggs.value.forEach(egg => {
+        egg.age += 1;
+      })
+      larvae.value.forEach(larva => {
+        larva.age += 1;
+      })
+      pupae.value.forEach(pupa => {
+        pupa.age += 1;
       })
     }
 
     // Определение роли пчелы по возрасту
     const getBeeRole = (age) => {
       // if (age < 3) return 'cleaner'
-      //if (age < 6) return 'nurse'
+      if (age < 20) return 'nurse'
       // if (age < 12) return 'builder'
       //  if (age < 18) return 'receptionist'
-      if (age < 1) return 'receptionist'
+      // else if (age < 20) return 'receptionist'
       else return 'forager'
     }
 
