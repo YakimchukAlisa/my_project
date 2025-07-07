@@ -17,7 +17,8 @@
           :pollen="resourcePiles.pollen.amount" :water="water" />
 
         <SimulationControls :isRunning="isRunning" @start="startSimulation" @pause="pauseSimulation"
-          @reset="resetSimulation" @change-speed="changeSpeed" @add-flower="addFlower" @add-worker="addWorker" />
+          @reset="resetSimulation" @change-speed="changeSpeed" @add-flower="addFlower" @add-worker="addWorker"
+          @apply-settings="applyInitialSettings" />
       </div>
 
       <div class="panel">
@@ -138,6 +139,103 @@ export default {
         amount: 0,
       }
     });
+
+    // Добавляем метод для применения начальных настроек
+    const applyInitialSettings = (settings) => {
+      // Сбрасываем симуляцию перед применением новых настроек
+      resetSimulation();
+
+      // Устанавливаем начальные ресурсы
+      resourcePiles.value.nectar.amount = settings.nectar;
+      resourcePiles.value.pollen.amount = settings.pollen;
+      resourcePiles.value.honey.amount = settings.honey;
+
+      const createBeeWithRole = (role, age) => {
+        return {
+          id: beeCounter.value++,
+          type: 'worker',
+          age: age || 0,
+          role: role,
+          x: Math.random() * 1000,
+          y: Math.random() * 600,
+          target: null,
+          carrying: { nectar: 0, pollen: 0 },
+          state: 'in_hive'
+        };
+      };
+
+      // Кормилицы
+      for (let i = 0; i < settings.nurses; i++) {
+        bees.value.push(createBeeWithRole('nurse', 3)); // Возраст 3 дня (типичный для кормилиц)
+      }
+
+      // Приёмщицы
+      for (let i = 0; i < settings.receptionists; i++) {
+        bees.value.push(createBeeWithRole('receptionist', 10)); // Возраст 10 дней
+      }
+
+      // Сборщицы
+      for (let i = 0; i < settings.foragers; i++) {
+        bees.value.push(createBeeWithRole('forager', 20)); // Возраст 20 дней
+      }
+
+      // Всегда одна матка
+      queen.value = {
+        id: beeCounter.value++,
+        age: 0,
+        position: { x: 70, y: 100 },
+        lastEggDay: -1
+      };
+
+      // Создаем цветы
+      flowers.value = [];
+      for (let i = 0; i < settings.flowers; i++) {
+        addFlower();
+      }
+
+      // Создаем яйца
+      eggs.value = [];
+      for (let i = 0; i < settings.eggs; i++) {
+        layEgg();
+      }
+
+      // Создаем личинки
+      larvae.value = [];
+      for (let i = 0; i < settings.larvae; i++) {
+        larvae.value.push({
+          id: Date.now() + i,
+          age: Math.floor(Math.random() * 3),
+          type: 'LARVA',
+          position: {
+            x: queen.value.position.x + (Math.random() * 200 + 50),
+            y: queen.value.position.y + (Math.random() * 200 + 50)
+          },
+          status: 'hungry',
+          foodType: 'ROYAL_JELLY'
+        });
+      }
+
+      // Создаем куколки
+      pupae.value = [];
+      for (let i = 0; i < settings.pupae; i++) {
+        pupae.value.push({
+          id: Date.now() + i + 1000,
+          age: Math.floor(Math.random() * 5) + 3,
+          type: 'PUPA',
+          position: {
+            x: queen.value.position.x + (Math.random() * 200 + 50),
+            y: queen.value.position.y + (Math.random() * 200 + 50)
+          }
+        });
+      }
+
+      logEntries.value.unshift({
+        day: day.value,
+        message: 'Применены начальные настройки'
+      });
+    };
+
+
 
     // Основной цикл симуляции
     const simulationLoop = () => {
@@ -453,14 +551,6 @@ export default {
 
     };
 
-
-    const initBees = () => {
-      beeCounter.value = 0; // Сбрасываем счётчик
-      for (let i = 0; i < 1; i++) {
-        addWorker()
-      }
-    }
-
     // Добавление нового цветка
     const addFlower = () => {
       const fieldWidth = 1000
@@ -534,16 +624,16 @@ export default {
     }
 
     const resetSimulation = () => {
-      isRunning.value = false
-      day.value = 0
-      timeOfDay.value = 'утро'
-      season.value = 'весна'
-      //bees = []
-      resourcePiles.value.nectar.amount = 0;
-      resourcePiles.value.pollen.amount = 0;
-      resourcePiles.value.honey.amount = 0;
-      logEntries.value = []
-      initFlowers()
+      isRunning.value = false;
+      day.value = 0;
+      timeOfDay.value = 'утро';
+      season.value = 'весна';
+      currentTick.value = 0;
+
+      // Очищаем журнал событий
+      logEntries.value = [];
+
+      // Очищаем списки
       activeForagers.value = [];
       bees.value = [];
       eggs.value = [];
@@ -551,12 +641,23 @@ export default {
       pupae.value = [];
       activeReceptionists.value = [];
       processingNectar.value = [];
-      initBees()
+
+      // Инициализируем только матку (если нужно)
+      queen.value = {
+        id: 0,
+        age: 0,
+        position: { x: 70, y: 100 },
+        lastEggDay: -1
+      };
+
+      // Инициализируем счетчик пчел
+      beeCounter.value = 0;
+
       logEntries.value.unshift({
         day: day.value,
         message: 'Симуляция сброшена'
-      })
-    }
+      });
+    };
 
     const changeSpeed = (speed) => {
       simulationSpeed.value = speed
@@ -848,10 +949,6 @@ export default {
       });
     };
 
-    // Инициализируем цветы при загрузке
-    initFlowers()
-    initBees()
-
     return {
       day,
       timeOfDay,
@@ -892,6 +989,7 @@ export default {
       eggs,
       larvae,
       pupae,
+      applyInitialSettings
     }
   }
 }
