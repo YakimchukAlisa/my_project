@@ -116,6 +116,7 @@ ${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}`;
       let status = '';
       switch (larva.status) {
         case 'hungry': status = 'Голодная'; break;
+        case 'assigned': status = 'Голодная'; break;
         case 'fed': status = 'Сытая'; break;
       }
       return `Возраст: ${larva.age} дней

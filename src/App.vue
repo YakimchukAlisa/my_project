@@ -2,12 +2,12 @@
   <div class="container">
     <div class="header">
       <h1>Симуляция пчелиной колонии</h1>
-      <p>День: {{ simulation.day }} | Время дня: {{ simulation.timeOfDay }} | Время года: {{ simulation.season }}</p>
+      <p>День: {{ simulation.day }} | Время дня: {{ simulation.timeOfDay }}</p>
     </div>
 
     <div class="dashboard">
       <div class="panel">
-        <BeeStats :queenCount="simulation.queenCount" :workerCount="simulation.workerCount" :pupae="simulation.pupae"
+        <BeeStats :queenCount="simulation.queenCount" :workerCount="simulation.bees.length" :pupae="simulation.pupae"
           :larvae="simulation.larvae" :eggs="simulation.eggs" />
 
         <TaskDistribution :nurseCount="simulation.nurseCount" :receptionistsCount="simulation.receptionistsCount"
@@ -19,7 +19,9 @@
         <SimulationControls :isRunning="simulation.isRunning" @start="simulation.startSimulation()"
           @pause="simulation.pauseSimulation()" @reset="simulation.resetSimulation()"
           @change-speed="simulation.changeSpeed" @add-flower="simulation.addFlower()"
-          @add-worker="simulation.addWorker()" @apply-settings="applyInitialSettings" />
+          @add-worker="simulation.addWorker()" @apply-settings="applyInitialSettings"
+          @changeSpeed10="simulation.changeSimulationSpeed(10)" @changeSpeed1="simulation.changeSimulationSpeed(1)"
+          @changeSpeed2="simulation.changeSimulationSpeed(2)" />
       </div>
 
       <div class="panel">
@@ -67,9 +69,6 @@ export default {
         'nurse': 'Кормилица',
         'receptionist': 'Приёмщица',
         'forager': 'Сборщица',
-        'cleaner': 'Уборщица',
-        'builder': 'Строительница',
-        'guard': 'Охранница'
       };
       return roles[role] || role;
     },

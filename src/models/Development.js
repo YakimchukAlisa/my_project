@@ -14,19 +14,13 @@ export class Egg {
 export class Larva {
   constructor(id, position) {
     this.id = id;
-    this.age = 4;
+    this.age = 3;
     this.type = 'LARVA';
     this.position = position;
     this.status = 'hungry';
     this.foodType = 'ROYAL_JELLY';
   }
 
-  feed() {
-    if (this.age >= 3 && this.foodType === 'ROYAL_JELLY') {
-      this.foodType = 'HONEY_POLLEN';
-    }
-    this.status = 'fed';
-  }
  updateFoodType() {
     if (this.age >= 3 && this.foodType === 'ROYAL_JELLY') {
       this.foodType = 'HONEY_POLLEN';
@@ -40,9 +34,5 @@ export class Pupa {
     this.age = 9;
     this.type = 'PUPA';
     this.position = position;
-  }
-
-  develop() {
-    this.age += 1;
   }
 }

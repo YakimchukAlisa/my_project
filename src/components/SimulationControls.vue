@@ -5,9 +5,9 @@
             <button @click="$emit('start')" :disabled="isRunning">Старт</button>
             <button @click="$emit('pause')" :disabled="!isRunning">Пауза</button>
             <button @click="$emit('reset')">Сброс</button>
-            <button @click="$emit('change-speed', 0.5)">0.5x</button>
-            <button @click="$emit('change-speed', 1)">1x</button>
-            <button @click="$emit('change-speed', 2)">2x</button>
+            <button @click="$emit('changeSpeed1')">1x</button>
+            <button @click="$emit('changeSpeed2')">2x</button>
+            <button @click="$emit('changeSpeed10')">10x</button>
             <button @click="$emit('add-flower')">Добавить цветок</button>
             <button @click="$emit('add-worker')">Добавить пчелу</button>
         </div>
@@ -110,37 +110,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.settings {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 8px;
-}
-
-.setting-group {
-    display: flex;
-    flex-direction: row;
-    gap: 10px;
-    padding: 10px;
-    background: white;
-    border-radius: 5px;
-}
-
-label {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-input {
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-</style>

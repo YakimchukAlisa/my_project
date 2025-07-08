@@ -8,8 +8,8 @@ export class Flower {
   }
 
   resetResources() {
-    this.nectar = Math.floor(Math.random() * 10) + 1;
-    this.pollen = Math.floor(Math.random() * 10) + 1;
+    this.nectar = Math.floor(Math.random() * 5) + 1;
+    this.pollen = Math.floor(Math.random() * 5) + 1;
   }
 
   ageOneDay() {

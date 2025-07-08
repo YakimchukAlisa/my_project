@@ -8,7 +8,6 @@ export class Simulation {
     // Состояние симуляции
     this.day = 0;
     this.timeOfDay = 'утро';
-    this.season = 'весна';
     this.isRunning = false;
     this.simulationSpeed = 1;
     this.currentTick = 0;
@@ -39,9 +38,9 @@ export class Simulation {
 
     // Стадии развития
     this.DEVELOPMENT_STAGES = {
-      EGG: { duration: 3, next: 'LARVA' },
-      LARVA: { duration: 6, next: 'PUPA' },
-      PUPA: { duration: 12, next: 'ADULT' }
+      EGG: { duration: 3},
+      LARVA: { duration: 6},
+      PUPA: { duration: 12}
     };
   }
 
@@ -65,7 +64,7 @@ applyInitialSettings(settings) {
     );
   };
 
-  // Кормилицы (возраст 0 дней
+  // Кормилицы (возраст 0 дней)
   for (let i = 0; i < settings.nurses; i++) {
     this.bees.push(createBee('nurse', 0));
   }
@@ -120,7 +119,6 @@ applyInitialSettings(settings) {
   // Основной цикл симуляции
   simulationLoop() {
     if (!this.isRunning) return;
-
     this.simulationTick();
 
     const delay = Math.max(1000 / (10 * this.simulationSpeed), 16);
@@ -130,7 +128,6 @@ applyInitialSettings(settings) {
   // Один тик симуляции
   simulationTick() {
     this.currentTick++;
-
     this.checkQueenEggLaying();
     this.assignNurseTasks();
 
@@ -174,6 +171,22 @@ applyInitialSettings(settings) {
       this.endDay();
     }
   }
+
+ // В класс Simulation добавьте этот метод
+changeSimulationSpeed(factor) {
+  // Ограничиваем диапазон скоростей от 0.5x до 10x
+  this.simulationSpeed = factor;
+  
+  // Если симуляция запущена, перезапускаем цикл с новой скоростью
+  if (this.isRunning) {
+    if (this.animationFrameId) {
+      clearTimeout(this.animationFrameId);
+    }
+    this.simulationLoop();
+  }
+  
+  this.logEvent(`Скорость симуляции изменена на ${this.simulationSpeed}x`);
+}
 
   // Все остальные методы сохраняются с теми же названиями
   updateTimeOfDay() {
@@ -403,7 +416,6 @@ applyInitialSettings(settings) {
     this.isRunning = false;
     this.day = 0;
     this.timeOfDay = 'утро';
-    this.season = 'весна';
     this.resourcePiles.nectar.amount = 0;
     this.resourcePiles.pollen.amount = 0;
     this.resourcePiles.honey.amount = 0;

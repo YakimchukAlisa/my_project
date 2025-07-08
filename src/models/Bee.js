@@ -1,5 +1,5 @@
 export class Bee {
-  constructor(id, type, role, age, x, y) {
+  constructor(id, role, age, x, y) {
     this.id = id;
     this.role = role;
     this.age = age;
