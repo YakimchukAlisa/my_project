@@ -15,8 +15,8 @@
         <div>{{ pollen }}</div>
       </div>
       <div class="stat-item">
-        <div>Вода</div>
-        <div>{{ water }}</div>
+        <div>Цветы</div>
+        <div>{{ flowers.length }}</div>
       </div>
     </div>
   </div>
@@ -28,7 +28,7 @@ export default {
     honey: Number,
     nectar: Number,
     pollen: Number,
-    water: Number
+    flowers: Array
   }
 }
 </script>

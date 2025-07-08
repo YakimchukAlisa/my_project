@@ -14,7 +14,7 @@
 
         <h2 align="center">Начальные настройки</h2>
         <div class="settings">
-            <h3>Пчелы </h3>
+            <h3 align="center">Пчёлы </h3>
             <div class="setting-group">
 
                 <label>
@@ -30,7 +30,7 @@
                     <input type="number" v-model.number="initialSettings.foragers" min="0">
                 </label>
             </div>
-            <h3>Развитие </h3>
+            <h3 align="center">Развитие </h3>
             <div class="setting-group">
                 <label>
                     Яйца:
@@ -45,7 +45,7 @@
                     <input type="number" v-model.number="initialSettings.pupae" min="0">
                 </label>
             </div>
-            <h3>Ресурсы</h3>
+            <h3 align="center">Ресурсы</h3>
             <div class="setting-group">
 
                 <label>
@@ -79,21 +79,33 @@ export default {
     data() {
         return {
             initialSettings: {
-                workers: 5,
-                queens: 1,
+                nurses: 5,
+                receptionists: 5,
+                foragers: 5,
                 eggs: 3,
-                larvae: 2,
-                pupae: 1,
-                flowers: 7,
-                nectar: 10,
-                pollen: 5,
-                honey: 3
+                larvae: 3,
+                pupae: 3,
+                flowers: 10,
+                nectar: 100,
+                pollen: 100,
+                honey: 100
             }
         }
     },
     methods: {
         applySettings() {
-            this.$emit('apply-settings', { ...this.initialSettings });
+            this.$emit('apply-settings', {
+                nurses: this.initialSettings.nurses,
+                receptionists: this.initialSettings.receptionists,
+                foragers: this.initialSettings.foragers,
+                eggs: this.initialSettings.eggs,
+                larvae: this.initialSettings.larvae,
+                pupae: this.initialSettings.pupae,
+                flowers: this.initialSettings.flowers,
+                nectar: this.initialSettings.nectar,
+                pollen: this.initialSettings.pollen,
+                honey: this.initialSettings.honey
+            });
         }
     }
 }

@@ -11,10 +11,6 @@
         <div>{{ workerCount }}</div>
       </div>
       <div class="stat-item">
-        <div>Трутни</div>
-        <div>{{ droneCount }}</div>
-      </div>
-      <div class="stat-item">
         <div>Куколки</div>
         <div>{{ pupae.length }}</div>
       </div>
@@ -35,7 +31,6 @@ export default {
   props: {
     queenCount: Number,
     workerCount: Number,
-    droneCount: Number,
     pupae: Array,
     larvae: Array,
     eggs: Array
