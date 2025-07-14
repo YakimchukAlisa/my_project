@@ -18,14 +18,16 @@ export class Larva {
     this.type = 'LARVA';
     this.position = position;
     this.status = 'hungry';
+    this.pollen = 0;
+    this.honey = 0;
     this.foodType = 'ROYAL_JELLY';
   }
 
- updateFoodType() {
+  updateFoodType() {
     if (this.age >= 3 && this.foodType === 'ROYAL_JELLY') {
       this.foodType = 'HONEY_POLLEN';
     }
-}
+  }
 }
 
 export class Pupa {

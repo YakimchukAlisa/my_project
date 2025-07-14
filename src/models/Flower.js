@@ -1,10 +1,12 @@
 export class Flower {
-  constructor(x, y) {
+  constructor(x, y, id) {
+    this.id = id;
     this.age = 0;
+    this.old = 3;
     this.x = x;
     this.y = y;
     this.resetResources();
-    this.collectingBee = null;
+    this.collectingBee = 0;
   }
 
   resetResources() {

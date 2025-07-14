@@ -94,13 +94,17 @@ export default {
         case 'flying_to_nectar': status = 'Летит к нектару'; break;
         case 'feeding_larva': status = 'Кормит личинку'; break;
         case 'flying_to_larva': status = 'Летит к личинке'; break;
+        case 'searching_flowers': status = 'Ищет цветы'; break;
+        case 'checking_flower': status = 'Проверяет цветок'; break;
       }
       return `Пчела #${bee.id}
 Возраст: ${bee.age} дней
 Роль: ${this.getRoleName(bee.role)}
 Состояние: ${status}
 ${bee.carrying.nectar ? `Нектар: ${bee.carrying.nectar}` : ''}
-${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}`;
+${bee.carrying.pollen ? `Пыльца: ${bee.carrying.pollen}` : ''}
+${bee.carrying.honey ? `Мёд: ${bee.carrying.honey}` : ''}
+${bee.carrying.jelly ? `Маточное молочко: ${bee.carrying.jelly}` : ''}`;
     },
     getRoleName(role) {
       const roles = {
