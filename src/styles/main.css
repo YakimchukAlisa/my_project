@@ -201,6 +201,21 @@
             position: absolute;
             cursor: help;
             z-index: 10;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
         }
 
         .bees-container {
@@ -248,7 +263,14 @@
             background-color: #9b59b6;
             width: 30px;
             height: 30px;
+        }
 
+        .bee-nurse {
+            background-color: #ffbed0;
+        }
+
+        .bee-receptionist {
+            background-color: #99e6ff;
         }
 
         .egg {

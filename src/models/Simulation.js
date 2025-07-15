@@ -32,7 +32,7 @@ export class Simulation {
 
     // Ресурсы
     this.resourcePiles = {
-      nectar: { x: 45, y: 70, amount: 29 },
+      nectar: { x: 45, y: 70, amount: 0 },
       pollen: { x: 55, y: 70, amount: 0 },
       honey: { x: 65, y: 70, amount: 0 }
     };
@@ -45,6 +45,19 @@ export class Simulation {
     };
   }
 
+  // Создаем пчел по ролям
+  createBee(role, age) {
+    const newBee = new Bee(
+      this.beeCounter++,
+      role,
+      age,
+      Math.random() * 1000,
+      Math.random() * 600
+    );
+    // Замените this.bees.push(newBee) на:
+    this.bees = [...this.bees, newBee];
+    this.logEvent(`Добавлена новая пчела (${role})`);
+  }
   applyInitialSettings(settings) {
     // Сначала сбрасываем симуляцию
     this.resetSimulation();
@@ -54,30 +67,20 @@ export class Simulation {
     this.resourcePiles.pollen.amount = settings.pollen;
     this.resourcePiles.honey.amount = settings.honey;
 
-    // Создаем пчел по ролям
-    const createBee = (role, age) => {
-      return new Bee(
-        this.beeCounter++,
-        role,
-        age,
-        Math.random() * 1000,
-        Math.random() * 600
-      );
-    };
 
     // Кормилицы (возраст 0 дней)
     for (let i = 0; i < settings.nurses; i++) {
-      this.bees.push(createBee('nurse', 0));
+      this.createBee('nurse', 0);
     }
 
     // Приёмщицы (возраст 10 дней)
     for (let i = 0; i < settings.receptionists; i++) {
-      this.bees.push(createBee('receptionist', 10));
+      this.createBee('receptionist', 10);
     }
 
     // Сборщицы (возраст 20 дней)
     for (let i = 0; i < settings.foragers; i++) {
-      this.bees.push(createBee('forager', 20));
+      this.createBee('forager', 20);
     }
 
     // Создаем цветы
@@ -130,8 +133,9 @@ export class Simulation {
   simulationTick() {
     this.currentTick++;
     this.checkQueenEggLaying();
+    this.checkBeesAge();
+    this.feedBees();
     this.assignNurseTasks();
-
     // Обработка нектара
     this.processingNectar = this.processingNectar.filter(item => {
       const elapsedTicks = (this.day - item.startDay) * this.ticksPerDay +
@@ -156,7 +160,7 @@ export class Simulation {
     this.sendReceptionists();
 
     this.bees.forEach(bee => {
-      if (bee.state === 'in_hive' && !bee.target) {
+      if ((bee.state === 'in_hive' || bee.state === 'processing')) {
         this.assignRandomMovement(bee);
         this.updateRandomMovement(bee);
       }
@@ -200,6 +204,25 @@ export class Simulation {
   endDay() {
     this.day++;
     this.currentTick = 0;
+    this.feedBees();
+    // Обновляем голод пчел
+    this.bees.forEach(bee => {
+      if (bee.honeyEaten < 3 || bee.pollenEaten < 3) {
+        bee.hunger++;
+        if (bee.hunger >= 2) {
+          this.logEvent(`Пчела #${bee.id} умерла от голода`);
+          return; // Помечаем для удаления
+        }
+      } else {
+        bee.hunger = 0; // Сбрасываем, если пчела поела
+      }
+      bee.honeyEaten = 0;
+      bee.pollenEaten = 0;
+      return true; // Оставляем пчелу
+    });
+
+    // Удаляем умерших от голода пчел
+    this.bees = this.bees.filter(bee => bee.hunger < 2);
 
     // Обновляем возраст всех существ
     this.queen.age++;
@@ -233,7 +256,7 @@ export class Simulation {
   checkFlowers() {
     // Удаляем старые цветы
     this.flowers = this.flowers.filter(flower => {
-      if (flower.age >= 2 && Math.random() < 0.3) {
+      if (flower.age >= 10 && Math.random() < 0.3) {
         return false;
       }
       return true;
@@ -327,6 +350,7 @@ export class Simulation {
   }
 
   assignNurseTasks() {
+    this.feedBees();
     const nurses = this.bees.filter(b => b.role === 'nurse' && b.state === 'in_hive');
     const hungryLarvae = this.larvae.filter(l => l.status === 'hungry');
 
@@ -336,30 +360,55 @@ export class Simulation {
       }
     });
   }
+
   updateFeeding(bee) {
-    bee.state = 'feeding_larva';
+    // Если только начали кормить - запоминаем текущее время
+    if (bee.state !== 'feeding_larva') {
+      bee.state = 'feeding_larva';
+      bee.feedingStartTime = this.currentTick; // Запоминаем время начала кормления
+      bee.feedingDuration = 100; // Длительность кормления в тиках (можно настроить)
+      return;
+    }
+
     const larva = this.larvae.find(l => l.id === bee.target.id);
-    if (larva) {
-      if (this.resourcePiles.honey.amount > 0 && larva.honey === 0) {
-        this.resourcePiles.honey.amount -= bee.carrying.honey;
-        larva.honey = 1;
-      }
-      if (this.resourcePiles.pollen.amount > 0 && larva.pollen === 0) {
-        this.resourcePiles.pollen.amount -= bee.carrying.pollen;
-        larva.pollen = 1;
-      }
-      if (larva.honey && larva.pollen) {
-        larva.status = 'fed';
-      }
-      bee.carrying.honey = 0;
-      bee.carrying.pollen = 0;
-      bee.carrying.jelly = 0;
-      if (larva.age === 6 && larva.foodType === 'ROYAL_JELLY') {
-        larva.foodType = 'HONEY_POLLEN';
-      }
+    if (!larva) {
       bee.state = 'in_hive';
       bee.target = null;
+      return;
     }
+
+    // Проверяем, прошло ли достаточно времени
+    if (this.currentTick - bee.feedingStartTime < bee.feedingDuration) {
+      return; // Ждём пока не пройдёт время кормления
+    }
+
+    // Процесс кормления
+    if (this.resourcePiles.honey.amount > 0 && larva.honey === 0) {
+      this.resourcePiles.honey.amount -= bee.carrying.honey;
+      larva.honey = 1;
+    }
+    if (this.resourcePiles.pollen.amount > 0 && larva.pollen === 0) {
+      this.resourcePiles.pollen.amount -= bee.carrying.pollen;
+      larva.pollen = 1;
+    }
+
+    if (larva.honey && larva.pollen) {
+      larva.status = 'fed';
+    }
+
+    bee.carrying.honey = 0;
+    bee.carrying.pollen = 0;
+    bee.carrying.jelly = 0;
+
+    if (larva.age === 6 && larva.foodType === 'ROYAL_JELLY') {
+      larva.foodType = 'HONEY_POLLEN';
+    }
+
+    // Завершаем кормление
+    bee.state = 'in_hive';
+    bee.target = null;
+    delete bee.feedingStartTime;
+    delete bee.feedingDuration;
   }
 
   addFlower() {
@@ -376,7 +425,7 @@ export class Simulation {
   }
 
   randomFlower() {
-    if (Math.random() < 0.3) {
+    if (Math.random() < 0.6) {
       this.addFlower();
     }
   }
@@ -454,6 +503,7 @@ export class Simulation {
   }
 
   sendForagers() {
+    this.feedBees();
     const availableForagers = this.bees.filter(
       bee => bee.role === 'forager' && bee.state === 'in_hive'
     );
@@ -511,8 +561,8 @@ export class Simulation {
               bee.state = 'checking_flower';
             } else if (bee.moveTo(bee.searchTarget.x, bee.searchTarget.y)) {
               // Не нашли - летим дальше
-              const newX = Math.max(1200, Math.min(2100, bee.x + (Math.random() * 1000 + 20)));
-              const newY = Math.max(30, Math.min(900, bee.y + (Math.random() * 840 - 40)));
+              const newX = 1200 + (Math.random() * 1000);
+              const newY = (Math.random() * 840 - 40);
               bee.searchTarget = {
                 x: newX,
                 y: newY
@@ -523,12 +573,12 @@ export class Simulation {
 
         case 'checking_flower':
           if (bee.moveTo(bee.target.x + 1090, bee.target.y - 90)) {
+            bee.visitedFlowersToday.push(bee.target); // Добавляем в посещенные сегодня
             if (bee.target.nectar > 0 || bee.target.pollen > 0) {
               // В цветке есть ресурсы - запоминаем его и собираем
               if (!bee.knownFlowers.includes(bee.target)) {
                 bee.knownFlowers.push(bee.target);
               }
-              bee.visitedFlowersToday.push(bee.target); // Добавляем в посещенные сегодня
               bee.state = 'collecting';
               bee.collectFrom(bee.target);
               bee.state = 'flying_to_hive';
@@ -537,8 +587,8 @@ export class Simulation {
             } else {
               bee.state = 'searching_flowers';
               bee.target.collectingBee = 0;
-              const newX = Math.max(1200, Math.min(2100, bee.x + (Math.random() * 1000 + 20)));
-              const newY = Math.max(30, Math.min(900, bee.y + (Math.random() * 840 - 40)));
+              const newX = 1200 + (Math.random() * 1000);
+              const newY = (Math.random() * 840 - 40);
               bee.searchTarget = {
                 x: newX,
                 y: newY
@@ -566,8 +616,8 @@ export class Simulation {
               }
               if (bee.knownFlowers.length === bee.visitedFlowersToday.length) {
                 bee.state = 'searching_flowers';
-                const newX = Math.max(1200, Math.min(2100, bee.x + (Math.random() * 1000 + 20)));
-                const newY = Math.max(30, Math.min(900, bee.y + (Math.random() * 840 - 40)));
+                const newX = 1200 + (Math.random() * 1000);
+                const newY = (Math.random() * 840 - 40);
                 bee.searchTarget = {
                   x: newX,
                   y: newY
@@ -616,6 +666,33 @@ export class Simulation {
             this.updateFeeding(bee);
           }
           break;
+
+        case 'feeding_larva':
+          // Пчела остаётся на месте и кормит личинку
+          this.updateFeeding(bee);
+          break;
+      }
+    });
+  }
+
+  feedBees() {
+    this.bees.forEach(bee => {
+
+      // Если пчела в улье и еще не поела сегодня
+      if (bee.state === 'in_hive' && (bee.honeyEaten < 3 || bee.pollenEaten < 3)) {
+        // Пытаемся поесть меда
+        if (bee.honeyEaten < 3 && this.resourcePiles.honey.amount > 0) {
+          const neededHoney = Math.min(3 - bee.honeyEaten, this.resourcePiles.honey.amount);
+          this.resourcePiles.honey.amount -= neededHoney;
+          bee.honeyEaten += neededHoney;
+        }
+
+        // Пытаемся поесть пыльцы
+        if (bee.pollenEaten < 3 && this.resourcePiles.pollen.amount > 0) {
+          const neededPollen = Math.min(3 - bee.pollenEaten, this.resourcePiles.pollen.amount);
+          this.resourcePiles.pollen.amount -= neededPollen;
+          bee.pollenEaten += neededPollen;
+        }
       }
     });
   }
@@ -674,16 +751,9 @@ export class Simulation {
     bee.target = null;
   }
 
-  updateBeesAge() {
-    this.queen.age++;
-    this.bees.forEach(bee => bee.age += 1);
-    this.eggs.forEach(egg => egg.age += 1);
-    this.larvae.forEach(larva => larva.age += 1);
-    this.pupae.forEach(pupa => pupa.age += 1);
-  }
-
   getBeeRole(age) {
-    if (age < 20) return 'nurse';
+    if (age < 10) return 'nurse';
+    else if (age < 20) return 'receptionist'
     else return 'forager';
   }
 
@@ -704,6 +774,7 @@ export class Simulation {
   }
 
   assignReceptionistTask(bee) {
+    this.feedBees();
     if (this.resourcePiles.nectar.amount - this.activeReceptionists.length * 10 > 0) {
       const amountToTake = Math.min(10, this.resourcePiles.nectar.amount - this.activeReceptionists.length * 10);
       bee.state = 'flying_to_nectar';
@@ -717,7 +788,7 @@ export class Simulation {
     const beesToRemove = [];
 
     this.bees.forEach((bee, index) => {
-      if (bee.age >= 25 && Math.random() < 0.3) {
+      if (bee.age >= 30 && Math.random() < 0.3 && bee.state === 'in_hive') {
         beesToRemove.push(index);
       }
     });
@@ -729,10 +800,6 @@ export class Simulation {
   }
 
   // Вычисляемые свойства
-  get queenCount() {
-    return this.bees.filter(b => b.type === 'queen').length;
-  }
-
   get nurseCount() {
     return this.bees.filter(b => b.role === 'nurse').length;
   }

@@ -39,6 +39,7 @@
       :style="{ left: pupa.position.x + 'px', top: pupa.position.y + 'px' }" :title="`Куколка\nВозраст: ${pupa.age}`">
     </div>
 
+    <!-- Пчёлы -->
     <div class="bees-container">
       <div v-for="bee in bees" :key="'bee-' + bee.id" class="bee" :class="['bee-' + bee.role, bee.state]"
         :style="getBeeStyle(bee)" :title="getBeeTooltip(bee)"></div>
@@ -55,7 +56,8 @@ export default {
     larvae: Array,
     queen: Array,
     resourcePiles: Object,
-    getBeeRole: Function
+    getBeeRole: Function,
+    isRunning: Boolean
   },
 
   computed: {
@@ -78,8 +80,10 @@ export default {
       return {
         left: `${bee.x}px`,
         top: `${bee.y}px`,
-        transform: `translate(-50%, -50%) scale(${bee.state === 'collecting' ? 1.2 : 1})`,
-        transition: 'all 0.3s ease'
+        transform: 'translate(-50%, -50%)',
+        transition: 'all 0.3s ease',
+        animation: !this.isRunning ? 'none' : 'pulse 2s infinite ease-in-out'
+
       }
     },
     getBeeTooltip(bee) {

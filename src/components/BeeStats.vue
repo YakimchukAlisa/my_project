@@ -4,7 +4,7 @@
     <div class="stats">
       <div class="stat-item">
         <div>Матка</div>
-        <div>{{ queenCount }}</div>
+        <div>{{ 1 }}</div>
       </div>
       <div class="stat-item">
         <div>Рабочие</div>

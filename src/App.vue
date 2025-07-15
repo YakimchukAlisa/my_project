@@ -18,8 +18,11 @@
 
         <SimulationControls :isRunning="simulation.isRunning" @start="simulation.startSimulation()"
           @pause="simulation.pauseSimulation()" @reset="simulation.resetSimulation()"
-          @change-speed="simulation.changeSpeed" @add-flower="simulation.addFlower()"
-          @add-worker="simulation.addWorker()" @apply-settings="applyInitialSettings"
+          @add-flower="simulation.addFlower()" @add-receptionist="simulation.createBee('receptionist', 10)"
+          @add-nurse="simulation.createBee('nurse', 0)" @add-forager="simulation.createBee('forager', 20)"
+          @apply-settings="applyInitialSettings" @add-pollen="simulation.resourcePiles.pollen.amount += 100"
+          @add-nectar="simulation.resourcePiles.nectar.amount += 100"
+          @add-honey="simulation.resourcePiles.honey.amount += 100"
           @changeSpeed10="simulation.changeSimulationSpeed(10)" @changeSpeed1="simulation.changeSimulationSpeed(1)"
           @changeSpeed2="simulation.changeSimulationSpeed(2)" />
       </div>
@@ -31,7 +34,8 @@
 
     <div class="hive-container">
       <Hive :bees="simulation.bees" :queen="simulation.queen" :eggs="simulation.eggs" :larvae="simulation.larvae"
-        :pupae="simulation.pupae" :resource-piles="simulation.resourcePiles" :get-role-name="getRoleName" />
+        :pupae="simulation.pupae" :resource-piles="simulation.resourcePiles" :get-role-name="getRoleName"
+        :isRunning="simulation.isRunning" />
       <Field :flowers="simulation.flowers" />
     </div>
   </div>
@@ -60,7 +64,7 @@ export default {
   },
   data() {
     return {
-      simulation: new Simulation()
+      simulation: reactive(new Simulation())
     };
   },
   methods: {

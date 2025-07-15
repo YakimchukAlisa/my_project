@@ -9,7 +9,11 @@
             <button @click="$emit('changeSpeed2')">2x</button>
             <button @click="$emit('changeSpeed10')">10x</button>
             <button @click="$emit('add-flower')">Добавить цветок</button>
-            <button @click="$emit('add-worker')">Добавить пчелу</button>
+            <button @click="$emit('add-nurse')">Добавить кормилицу</button>
+            <button @click="$emit('add-receptionist')">Добавить приёмщицу</button>
+            <button @click="$emit('add-forager')">Добавить сборщика</button>
+            <button @click="$emit('add-nectar')">Добавить нектар</button>
+            <button @click="$emit('add-honey')">Добавить мёд</button>
         </div>
 
         <h2 align="center">Начальные настройки</h2>
@@ -86,9 +90,9 @@ export default {
                 larvae: 3,
                 pupae: 3,
                 flowers: 10,
-                nectar: 100,
-                pollen: 100,
-                honey: 100
+                nectar: 500,
+                pollen: 500,
+                honey: 500
             }
         }
     },
