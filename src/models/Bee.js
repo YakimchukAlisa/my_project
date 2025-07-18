@@ -15,7 +15,7 @@ export class Bee {
     };
     this.state = 'in_hive';     // Текущее состояние пчелы (в улье, летит к цветку и т.д.)
     this.randomTarget = null;   // Случайная цель для свободного перемещения
-    this.knownFlowers = [];     // Массив известных пчеле цветов (кэш местоположений)
+    this.knownFlowers = [];     // Массив известных пчеле цветов 
     this.searchRadius = 200;    // Радиус, в котором пчела ищет цветы
     this.visitedFlowersToday = []; // Цветы, посещенные сегодня (чтобы избежать повторных посещений)
     this.hunger = 0;            // Дни без еды (0-2)
@@ -25,13 +25,13 @@ export class Bee {
 
   // Метод для перемещения пчелы к указанным координатам
   moveTo(targetX, targetY) {
-    const dx = targetX - this.x;
-    const dy = targetY - this.y;
+    const dx = targetX - this.x;  // Разница по X
+    const dy = targetY - this.y;  // Разница по Y
     const distance = Math.sqrt(dx * dx + dy * dy); // Расстояние до цели
 
     // Если пчела уже у цели 
     if (distance < 1) {
-      return true;
+      return true;  // Возвращает true, если достигла цели
     }
 
     // Нормализация направления (получаем единичный вектор направления)
@@ -52,7 +52,7 @@ export class Bee {
     this.x += directionX * speed;
     this.y += directionY * speed;
 
-    return false;  // Возвращает false, если не достигла цели
+    return false;  // Возвращает false, если еще не достигла цели
   }
 
   // Назначение случайной цели для свободного перемещения
@@ -94,7 +94,7 @@ export class Bee {
 
     // В зависимости от типа пищи личинки берем соответствующие ресурсы
     this.carrying = larva.foodType === 'ROYAL_JELLY'
-      ? { honey: 0, pollen: 0, jelly: 1 }  // Для королевского молочка
+      ? { honey: 0, pollen: 0, jelly: 1 }  // Для королевского желе
       : { honey: 1, pollen: 1, jelly: 0 }; // Для обычной пищи
   }
 
@@ -116,10 +116,11 @@ export class Bee {
     // Очищаем цветок
     flower.nectar = 0;
     flower.pollen = 0;
-    flower.collectingBee = null;
 
+    // Логируем событие
     simulation.logEvent(`Пчела #${this.id} собрала ${this.carrying.nectar} нектара и ${this.carrying.pollen} пыльцы`);
     this.state = 'flying_to_hive';  // Меняем состояние на "летит в улей"
+    flower.collectingBee = 0;
   }
 
   // Доставка ресурсов в улей
@@ -132,8 +133,8 @@ export class Bee {
     }
     simulation.logEvent(`Пчела #${this.id} доставила ${this.carrying.nectar} нектара и ${this.carrying.pollen} пыльцы в улей`);
     this.carrying = { nectar: 0, pollen: 0 };  // Обнуляем переносимые ресурсы
-    this.state = 'in_hive';                   // Возвращаемся в состояние "в улье" 
+    this.state = 'in_hive';                   // Возвращаемся в состояние "в улье"
+
+
   }
 }
-
-
