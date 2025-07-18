@@ -12,6 +12,7 @@
             <button @click="$emit('add-nurse')">Добавить кормилицу</button>
             <button @click="$emit('add-receptionist')">Добавить приёмщицу</button>
             <button @click="$emit('add-forager')">Добавить сборщика</button>
+            <button @click="$emit('add-pollen')">Добавить пыльцу</button>
             <button @click="$emit('add-nectar')">Добавить нектар</button>
             <button @click="$emit('add-honey')">Добавить мёд</button>
         </div>

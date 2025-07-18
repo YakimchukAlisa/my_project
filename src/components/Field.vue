@@ -24,7 +24,7 @@
 export default {
   props: {
     flowers: Array,
-    bees: Array // Добавлен пропс для пчёл
+    bees: Array
   },
   computed: {
     fieldBees() {

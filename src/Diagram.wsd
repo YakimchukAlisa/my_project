@@ -1,0 +1,171 @@
+@startuml
+class Simulation {
+  - day: number = 0
+  - timeOfDay: string = 'утро'
+  - isRunning: boolean = false
+  - simulationSpeed: number = 1
+  - currentTick: number = 0
+  - ticksPerDay: number = 720
+  - animationFrameId: number | null = null
+  - beeCounter: number = 0
+  - flowerCounter: number = 0
+  - bees: Bee[]
+  - queen: Queen
+  - eggs: Egg[]
+  - larvae: Larva[]
+  - pupae: Pupa[]
+  - flowers: Flower[]
+  - logEntries: []
+  - activeReceptionists: Bee[]
+  - processingNectar: []
+  - honeyProductionTime: number = 720
+  - hivePosition: {x: number, y: number}
+
+  + Simulation()
+  + createBee(role: string, age: number): void
+  + applyInitialSettings(settings): void
+  + simulationLoop(): void
+  + simulationTick(): void
+  + changeSimulationSpeed(factor: number): void
+  + updateTimeOfDay(): void
+  + endDay(): void
+  + checkFlowers(): void
+  + updateDevelopment(): void
+  + addWorkerBee(position): void
+  + assignNurseTasks(): void
+  + updateFeeding(bee: Bee): void
+  + addFlower(): void
+  + randomFlower(): void
+  + startSimulation(): void
+  + pauseSimulation(): void
+  + resetSimulation(): void
+  + addWorker(): void
+  + sendForagers(): void
+  + updateBeePositions(): void
+  + feedBees(): void
+  + logEvent(message: string): void
+  + removeDeadLarvae(): void
+  + getBeeRole(age: number): string
+  + updateBeeRoles(): void
+  + sendReceptionists(): void
+  + assignReceptionistTask(bee: Bee): void
+  + checkBeesAge(): void
+  + get nurseCount(): number
+  + get receptionistsCount(): number
+  + get foragersCount(): number
+}
+
+class Bee {
+  - id: number
+  - role: string
+  - age: number
+  - old: number = 30
+  - x: number
+  - y: number
+  - baseSpeed: number = 15
+  - target: Object
+  - carrying: {nectar: number, pollen: number, honey: number}
+  - state: string = 'in_hive'
+  - randomTarget: Object 
+  - knownFlowers: array
+  - searchRadius: number = 200
+  - visitedFlowersToday: array
+  - hunger: number = 0
+  - honeyEaten: number = 0
+  - pollenEaten: number = 0
+
+  + Bee(id, role, age, x, y)
+  + moveTo(targetX: number, targetY: number): boolean
+  + assignRandomMovement(): void
+  + updateRandomMovement(): void
+  + assignToLarva(larva): void
+  + processNectar(hiveResources): number
+  + collectFrom(simulation, flower): void
+  + deliverTo(simulation, resourcePiles): void
+}
+
+class Egg {
+  - id: number
+  - age: number = 0
+  - duration: number = 3
+  - position: Object
+
+  + Egg(id, position)
+}
+
+class Larva {
+  - id: number
+  - age: number = 3
+  - duration: number = 6
+  - position: Object
+  - status: string = 'hungry'
+  - pollen: number = 0
+  - honey: number = 0
+  - foodType: string = 'ROYAL_JELLY'
+
+  + Larva(id, position)
+  + updateFoodType(): void
+}
+
+class Pupa {
+  - id: number
+  - age: number = 9
+  - duration: number = 12
+  - type: string = 'PUPA'
+  - position: Object
+
+  + Pupa(id, position)
+}
+
+class Flower {
+  - id: number
+  - age: number = 0
+  - old: number = 5
+  - x: number
+  - y: number
+  - dieChance: number = 0.3
+  - nectar: number
+  - pollen: number
+  - collectingBee: number = 0
+
+  + Flower(x, y, id)
+  + ageOneDay(): void
+  + resetResources(): void
+}
+
+class Queen {
+  - id: number
+  - age: number = 0
+  - position: {x: number, y: number}
+  - eggLayingChance: number = 0.003
+
+  + Queen(id)
+  + tryLayEgg(simulation): Egg | null
+  + layEgg(): Egg
+}
+
+class ResourcePiles {
+  - nectar: {x: number, y: number, amount: number}
+  - pollen: {x: number, y: number, amount: number}
+  - honey: {x: number, y: number, amount: number}
+
+  + ResourcePiles()
+}
+
+' Связи между классами
+Simulation "1" *-- "1" Queen : содержит
+Simulation "1" *-- "1" ResourcePiles : содержит
+Simulation "1" *-- "0..*" Bee : содержит
+Simulation "1" *-- "0..*" Egg : содержит
+Simulation "1" *-- "0..*" Larva : содержит
+Simulation "1" *-- "0..*" Pupa : содержит
+Simulation "1" *-- "0..*" Flower : содержит
+
+Bee "1" --> "0..*" Flower : собирает 
+Bee "1" --> "0..*" Larva : кормит
+Bee "1" --> "1" ResourcePiles : доставляет
+Egg --> Larva : превращается
+Larva --> Pupa : превращается
+Queen "1" --> "0..*" Egg : откладывает
+
+@enduml
